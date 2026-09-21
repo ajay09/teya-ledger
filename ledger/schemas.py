@@ -1,6 +1,12 @@
 from marshmallow import Schema, fields, validate
 
 
+class PenceAsString(fields.String):
+    def _serialize(self, value, attr, obj, **kwargs):
+        pounds, pence = divmod(value, 100)
+        return f"{pounds}.{pence:02d}"
+
+
 class AccountCreateSchema(Schema):
     account_number = fields.String(required=True)
     currency = fields.String(load_default="GBP", validate=validate.Length(equal=3))
@@ -29,7 +35,7 @@ class TransactionSchema(Schema):
     id = fields.Integer(required=True)
     account_number = fields.String(required=True)
     transaction_type = fields.String(required=True)
-    amount = fields.Integer(required=True, metadata={"description": "Amount in pence"})
+    amount = PenceAsString(required=True)
     idempotency_key = fields.String(required=True)
     reference = fields.String(required=True)
     transaction_timestamp = fields.DateTime(required=True)

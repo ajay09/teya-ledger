@@ -92,7 +92,7 @@ class AccountTransactions(MethodView):
                     "id": 1,
                     "account_number": "ACC-001",
                     "transaction_type": "deposit",
-                    "amount": 1025,
+                    "amount": "10.25",
                     "idempotency_key": "deposit-001",
                     "reference": "5da9d94e-9047-49a8-b2f6-f350daf637de",
                     "transaction_timestamp": "2026-09-21T12:00:00+00:00",
