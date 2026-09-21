@@ -78,20 +78,37 @@ class InMemoryDatabaseTests(unittest.TestCase):
 
         self.assertEqual(transaction.amount, 1_025)
 
-    def test_idempotency_keys_are_unique(self) -> None:
-        Transaction.create(
+    def test_idempotent_retry_returns_the_original_transaction(self) -> None:
+        original_transaction = Transaction.create(
             self.account.account_number,
             TransactionType.DEPOSIT,
             "100",
             "request-1",
         )
 
+        retried_transaction = Transaction.create(
+            self.account.account_number,
+            TransactionType.DEPOSIT,
+            "100.00",
+            "request-1",
+        )
+
+        self.assertIs(retried_transaction, original_transaction)
+
+    def test_idempotency_key_cannot_be_reused_with_different_data(self) -> None:
+        Transaction.create(
+            self.account.account_number,
+            TransactionType.DEPOSIT,
+            "100",
+            "request-with-different-data",
+        )
+
         with self.assertRaises(DuplicateModelError):
             Transaction.create(
                 self.account.account_number,
                 TransactionType.DEPOSIT,
-                "100",
-                "request-1",
+                "200",
+                "request-with-different-data",
             )
 
     def test_withdrawal_with_insufficient_balance_is_rejected(self) -> None:

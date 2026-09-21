@@ -93,18 +93,27 @@ class Transaction:
     ) -> "Transaction":
         Account.get(account_number)
         account_transactions = db.transactions[account_number]
-        if any(
-            tranx.idempotency_key == idempotency_key
-            for tranx in account_transactions.values()
-        ):
-            raise DuplicateModelError(f"Transaction {idempotency_key!r} already exists")
+        transaction_type = TransactionType(transaction_type)
+        amount_in_pence = to_pence(amount)
+
+        for existing_transaction in account_transactions.values():
+            if existing_transaction.idempotency_key != idempotency_key:
+                continue
+            if (
+                existing_transaction.transaction_type != transaction_type
+                or existing_transaction.amount != amount_in_pence
+            ):
+                raise DuplicateModelError(
+                    f"Transaction {idempotency_key!r} already exists with different data"
+                )
+            return existing_transaction
 
         transaction_id = len(account_transactions) + 1
         transaction = cls(
             id=transaction_id,
             account_number=account_number,
-            transaction_type=TransactionType(transaction_type),
-            amount=to_pence(amount),
+            transaction_type=transaction_type,
+            amount=amount_in_pence,
             idempotency_key=idempotency_key,
             reference=reference if reference is not None else str(uuid4()),
             transaction_timestamp=transaction_timestamp or utc_now(),

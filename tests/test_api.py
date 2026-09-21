@@ -59,20 +59,43 @@ class ApiTests(unittest.TestCase):
             f"{balance + Decimal('750.00'):.2f}",
         )
 
-    def test_duplicate_idempotency_key_is_rejected(self) -> None:
+    def test_idempotent_retry_returns_the_original_transaction(self) -> None:
         payload = {
             "transaction_type": "deposit",
             "amount": "100",
             "idempotency_key": "api-duplicate",
         }
-        self.client.post(
+        original_response = self.client.post(
             f"/v1/accounts/{self.account_number}/transactions",
             json=payload,
         )
 
-        response = self.client.post(
+        retry_response = self.client.post(
             f"/v1/accounts/{self.account_number}/transactions",
             json=payload,
+        )
+
+        self.assertEqual(retry_response.status_code, 201)
+        self.assertEqual(retry_response.get_json(), original_response.get_json())
+
+    def test_idempotency_key_cannot_be_reused_with_different_data(self) -> None:
+        idempotency_key = "api-duplicate-different-data"
+        self.client.post(
+            f"/v1/accounts/{self.account_number}/transactions",
+            json={
+                "transaction_type": "deposit",
+                "amount": "100",
+                "idempotency_key": idempotency_key,
+            },
+        )
+
+        response = self.client.post(
+            f"/v1/accounts/{self.account_number}/transactions",
+            json={
+                "transaction_type": "deposit",
+                "amount": "200",
+                "idempotency_key": idempotency_key,
+            },
         )
 
         self.assertEqual(response.status_code, 409)
