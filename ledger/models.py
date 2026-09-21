@@ -48,6 +48,8 @@ class Account:
     @classmethod
     def create(cls, account_number: str, currency: str = "GBP",) -> "Account":
         account_number = account_number.strip()
+        if not account_number:
+            raise ValueError("account_number must not be empty")
         if account_number in db.accounts:
             raise DuplicateModelError(f"Account {account_number!r} already exists")
         account = cls(account_number=account_number, currency=currency.upper())
@@ -130,14 +132,8 @@ class Transaction:
         return tuple(db.transactions[account_number].values())
 
     def __post_init__(self) -> None:
-        if not self.account_number.strip():
-            raise ValueError("account_number must not be empty")
-        if not isinstance(self.amount, int) or isinstance(self.amount, bool):
-            raise TypeError("amount must be an integer")
         if self.amount <= 0:
             raise ValueError("amount must be greater than zero")
-        if not self.idempotency_key.strip():
-            raise ValueError("idempotency_key must not be empty")
 
         transaction_type = TransactionType(self.transaction_type)
         self.transaction_type = transaction_type
